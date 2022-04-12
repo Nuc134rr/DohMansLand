@@ -23,6 +23,10 @@
 		{
 			"Name": "GeometryScripting",
 			"Enabled": true
+		},
+		{
+			"Name": "RemoteSession",
+			"Enabled": true
 		}
 	]
 }
