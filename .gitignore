@@ -13,3 +13,4 @@ Saved
 *.xcodeproj
 *.xcworkspace
 *.DS_Store
+*.code-workspace
