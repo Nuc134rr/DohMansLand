@@ -6,13 +6,20 @@
 class FTankGameLoadingModule : public ITankGameLoadingModule
 {
     public:
-    void startLoading(int WinnerID) override
+    virtual void StartupModule() override
     {
+        //Pre-load assets
+        LoadObject<UTexture>(NULL, TEXT("/Game/Assets/Textures/UI/Transition_Paper.Transition_Paper"));
+    }
+    void startLoading(FString TextToDisplay, FLinearColor Color) override
+    {
+        //Setting some relatively self-explanatory variables
         FLoadingScreenAttributes loadingScreen;
         loadingScreen.bAutoCompleteWhenLoadingCompletes = true;
-        loadingScreen.MinimumLoadingScreenDisplayTime = 2.f;
-        loadingScreen.WidgetLoadingScreen = SNew(STransitionWidget).WinnerID(WinnerID);
+        loadingScreen.MinimumLoadingScreenDisplayTime = 10.f;
+        loadingScreen.WidgetLoadingScreen = SNew(STransitionWidget).WinnerColor(Color).WinnerText(TextToDisplay);
         GetMoviePlayer()->SetupLoadingScreen(loadingScreen);
+
     }
 };
 

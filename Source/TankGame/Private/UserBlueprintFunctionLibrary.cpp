@@ -18,11 +18,12 @@ void UUserBlueprintFunctionLibrary::plusEqual_Float(float &A, float Amount, floa
     a_out = A;
 }
 
-void UUserBlueprintFunctionLibrary::CreateLoadScreen(int Winner)
+void UUserBlueprintFunctionLibrary::CreateLoadScreen(FString TextToDisplay, FLinearColor Color)
 {
+    //Loads the module (I presume it just returns the pointer if already loaded)
     ITankGameLoadingModule* screen = FModuleManager::LoadModulePtr<ITankGameLoadingModule>("TankGameLoading");
     if(screen != NULL)
     {
-        screen->startLoading(Winner);
+        screen->startLoading(TextToDisplay, Color);
     }
 }

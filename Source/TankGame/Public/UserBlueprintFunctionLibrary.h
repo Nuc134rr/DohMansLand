@@ -25,6 +25,6 @@ public:
 
     //Creates an asynchronus loading screen
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Create Loading Screen", Keywords = "load loading screen"))
-    static void CreateLoadScreen(int Winner);
+    static void CreateLoadScreen(FString TextToDisplay, FLinearColor Color);
     
 };

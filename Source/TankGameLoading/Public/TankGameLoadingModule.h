@@ -3,5 +3,7 @@
 class TANKGAMELOADING_API ITankGameLoadingModule : public IModuleInterface
 {
 public:
-	virtual void startLoading(int WinnerID) = 0;
+	virtual void startLoading(FString TextToDisplay, FLinearColor Color) = 0;
+	SWindow LoadingWindow;
+	
 };

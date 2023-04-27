@@ -6,88 +6,126 @@
 #include "SlateExtras.h"
 #include "SlateOptMacros.h"
 #include "Slate/DeferredCleanupSlateBrush.h"
+#include "Slate/WidgetTransform.h"
+#include "Engine/World.h"
+#include "Math/UnrealMathUtility.h"
+#include "Widgets/Layout/SConstraintCanvas.h"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-void STransitionWidget::SetWinnerResource(int ID)
-{
-    //Yes, this is unfortunatly how I'm doing this
-    switch(ID)
-    {
-        //Red
-        case 0 :
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Red_WinsTEX.Red_WinsTEX");
-        break;
-        //Orange
-        case 1:
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Orange_WinsTEX.Orange_WinsTEX");
-        break;
-        //Yellow
-        case 2:
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Yellow_WinsTEX.Yellow_WinsTEX");
-        break;
-        //Green
-        case 3:
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Green_WinsTEX.Green_WinsTEX");
-        break;
-        //Blue
-        case 4:
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Blue_WinsTEX.Blue_WinsTEX");
-        break;
-        //Purple
-        case 5:
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Purple_WinsTEX.Purple_WinsTEX");
-        break;
-        //Default
-        default:
-            winnerResourcePath = TEXT("/Game/Assets/Textures/UI/Purple_WinsTEX.Purple_WinsTEX");
-        break;
-    }
-}
 
+//Creating our widget
 void STransitionWidget::Construct(const FArguments& InArgs)
 {
-    
-    //Set variable to feed into slate's construction
-    SetWinnerResource(InArgs._WinnerID);
-    GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Red, TEXT("Path = %s"), *winnerResourcePath.ToString());
-    UE_LOG(LogTemp, Warning, TEXT("Path = %s") , *winnerResourcePath.ToString())
+
+    //Allows us to edit outside of construct
+    BaseOverlay = SNew(SOverlay);
+    FSlateFontInfo DohFontInfo;
+
  	ChildSlot
 	[
-		SNew(SOverlay)
+		SAssignNew(BaseOverlay, SOverlay)
         + SOverlay::Slot()
-        .VAlign(VAlign_Fill)
-        .HAlign(HAlign_Fill)
         [
-            //Winner Image
+            SNew(SPaperWithWinner)
+            .WinnerColor(InArgs._WinnerColor)
+            .WinnerText(InArgs._WinnerText)
+        ]
+        + SOverlay::Slot()
+        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Right)
+        [
             SNew(SImage)
-            .RenderTransform(this, )
-            //FDeferredCleanupSlateBrush seems to be required when using Movie Player's loading screen
-            .Image(FDeferredCleanupSlateBrush::CreateBrush(LoadObject<UTexture>(NULL, *winnerResourcePath.ToString())).Get().GetSlateBrush())
+            .Image(FDeferredCleanupSlateBrush::CreateBrush(LoadObject<UTexture>(NULL, TEXT("/Game/Assets/Textures/UI/Transition_Plane.Transition_Plane"))).Get().GetSlateBrush())
         ]
 	];
+
+    ViewportHandle = GEngine->GameViewport->Viewport->ViewportResizedEvent.AddRaw(this, &STransitionWidget::SetViewportBasedVariables);
+    SetViewportBasedVariables(NULL, 0);
 }
 
 void STransitionWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
-
     SWidget::Tick(AllottedGeometry, InCurrentTime, InDeltaTime);
-
-    UE_LOG(LogTemp, Warning, TEXT("TickRunning"))
-    GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Blue, TEXT("Tick Ran"));
+    LerpTime += InDeltaTime / TimeToTransition;
+    BaseOverlay.Get()->SetRenderTransform(TOptional<FSlateRenderTransform>(FMath::Lerp(StartingPosition, EndPosition, LerpTime)));
 }
 
-const TOptional<FTransform2D> STransitionWidget::SetPaperTransform(FVector2D NewPosition) const
+void STransitionWidget::SetViewportBasedVariables(FViewport* Viewport, uint32 val)
 {
-    if(PaperTransform.IsSet()) //Making sure we aren't setting a value that doesn't exist
+    FVector2D ViewportSize;
+    GEngine->GameViewport->GetViewportSize(ViewportSize);
+    StartingPosition = FVector2D(-ViewportSize.X, 0);
+    EndPosition = FVector2D(ViewportSize.X, 0);
+}
+
+
+void STransitionWidget::SPaperWithWinner::Construct(const FArguments& InArgs)
+{
+    //Variable that we can edit on tick
+    PaperOverlay = SNew(SOverlay);
+
+
+    ChildSlot
+    [
+        SAssignNew(PaperOverlay, SOverlay)
+        + SOverlay::Slot()
+        .VAlign(VAlign_Center)
+        .HAlign(HAlign_Center)
+        [
+            //Paper
+            SNew(SImage)
+            .Image(FDeferredCleanupSlateBrush::CreateBrush(LoadObject<UTexture>(NULL, TEXT("/Game/Assets/Textures/UI/Transition_Paper.Transition_Paper"))).Get().GetSlateBrush())
+        ]
+        + SOverlay::Slot()
+        .HAlign(HAlign_Center)
+        .VAlign(VAlign_Center)
+        [
+            //Winner text
+            SNew(STextBlock)
+            .ShadowColorAndOpacity(FLinearColor::Black)
+            .ColorAndOpacity(FSlateColor(InArgs._WinnerColor))
+            .ShadowOffset(FIntPoint(-1, 1)) 
+            .Font(FSlateFontInfo(LoadObject<UObject>(NULL, TEXT("/Game/UI/font/DohMansFont-Regular_Font.DohMansFont-Regular_Font")), 100))
+            .Text(FText::FromString(InArgs._WinnerText)) 
+            .Justification(ETextJustify::Center)
+        ]
+    ];
+}
+
+//Only updates the children of PaperOverlay
+void STransitionWidget::SPaperWithWinner::UpdateVariables(FVector2D ViewportSize)
+{
+    //Prevents us from crashing
+    if(PaperOverlay->GetChildren()->Num() > 2)
     {
-        PaperTransform.GetValue().SetTranslation(NewPosition);
+        PaperOverlay->GetChildren()->GetChildAt(0).Get().SetRenderTransform(FindStartingTransform(FVector2D(1, 1.41), FVector2D(0, -ViewportSize.Y / 2), ViewportSize));
+        return;
     }
-    else
+
+    UE_LOG(LogTemp, Warning, TEXT("Array is too small, did not update."))
+    return;
+}
+
+TOptional<FSlateRenderTransform> STransitionWidget::SPaperWithWinner::FindStartingTransform(FVector2D CurrentScale, FVector2D NewPosition, FVector2D ViewportSize)
+{
+    //Determine which value we want to base the other off
+    if(ViewportSize.X > ViewportSize.Y)
     {
-        PaperTransform = TOptional<FSlateRenderTransform>(FSlateRenderTransform(NewPosition));
+        return TOptional<FSlateRenderTransform>(FTransform2D(FScale2D(CurrentScale.X, CurrentScale.Y * (ViewportSize.X / ViewportSize.Y)), NewPosition));
     }
-    return PaperTransform;
+    else if(ViewportSize.X < ViewportSize.Y)
+    {
+        return TOptional<FSlateRenderTransform>(FTransform2D(FScale2D(CurrentScale.X * (ViewportSize.Y / ViewportSize.X), CurrentScale.Y), NewPosition));
+    }
+
+    return TOptional<FSlateRenderTransform>(FTransform2D(FScale2D(CurrentScale.X, CurrentScale.Y), NewPosition));
+}
+
+
+STransitionWidget::~STransitionWidget()
+{
+    GEngine->GameViewport->Viewport->ViewportResizedEvent.Remove(ViewportHandle);
 }
 
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
