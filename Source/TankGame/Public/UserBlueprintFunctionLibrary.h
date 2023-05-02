@@ -16,7 +16,6 @@ class TANKGAME_API UUserBlueprintFunctionLibrary : public UBlueprintFunctionLibr
 public:
     
     //Plus Equal float and int
-
     UFUNCTION(BlueprintCallable, meta = (DisplayName = "Int += Int", CompactNodeTitle = "+=", Keywords = "+ plus equal add", Category = "Utilities | Operators"))
     static void plusEqual_Int(UPARAM(ref) int &A, int Amount,UPARAM(DisplayName = "Result (Not Referencable)") int &a_out);
     

@@ -17,6 +17,9 @@ public:
 
 	SLATE_ARGUMENT(FLinearColor, WinnerColor);
 
+	//Currently unused, I plan for it to be used but am using TimeToTransition variable instead currenty
+	SLATE_ARGUMENT(float, Speed);
+
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs);
@@ -25,19 +28,16 @@ public:
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	
-	float TimeToTransition = 5.f;
-	
+	float TimeToTransition = 2000.f;
+
 	//Deconstructor for delegate
 	~STransitionWidget();
 	
 private:
-	FName winnerResourcePath;
-	FTransform2D PaperTransform;
 	TSharedPtr<SWidget> BaseOverlay;
-	FVector2D StartingPosition = FVector2D(0, 0);
-	FVector2D EndPosition = FVector2D(0, 0);
+	
 	FDelegateHandle ViewportHandle;
-	float LerpTime = 0.f;
+	float CurrentTime = 0.f;
 
 	//A simple paper with the winner shown on top. We need two of these for a loop.
 	class SPaperWithWinner: public SCompoundWidget
@@ -63,5 +63,9 @@ private:
 
 		TSharedPtr<SWidget> PaperOverlay;
 	};
+
+
+	TSharedPtr<SPaperWithWinner> FirstPaper;
+	TSharedPtr<SPaperWithWinner> SecondPaper;
 };
 
